@@ -12,39 +12,69 @@ String.prototype.shouldIgnore = function() {
 	return false;
 };
 
+exports.processFile = function(file) {
+	// make everything lower case for easy processing
+	var processedScript = fs.readFileSync(file, {encoding: 'utf8'}).toLowerCase();
+
+	/*
+		the method will help remove repeated string pattern in a script like:
+		- character's beginning dialog scene e.g. kyle:
+		- scene information e.g. [Morning, bus stop. Stan and Kyle wait for the bus, and Kyle arrives]
+
+		the process:
+		1. check if repeated string pattern exist
+			- identify using a unique token
+		2. if repeated string pattern exists, remove pattern with current regular expression e.g. \[\\S+\]
+		3. increment middleToken e.g. \[\\S+ \\S+\]; append whitespace before middleToken
+		4. repeat from 1
+		5. if repeated string pattern doesn't exist anymore, return processed file
+
+		param:
+			startToken: beginning part of the regular expression e.g. \\[
+			token: middle part of the regular expression e.g. \\S+
+			endToken: end part of the regular expression e.g. \\]
+			uniqueToken: token used to identify uniqueness with the repeated string pattern
+			file: file to process
+	*/
+	function removeRepeats(startToken, middleToken, endToken, uniqueToken, script) {
+		var tokens = [middleToken];
+		var	uniqueExp = new RegExp(uniqueToken, 'mg');
+		while(uniqueExp.test(script)) {
+			var stringExp = startToken + tokens.toString().replace(/,/g, '') + endToken;
+			var	replacerExp = new RegExp(stringExp, 'mg');
+			script = script.replace(replacerExp, '');
+			tokens.push(' ' + middleToken);
+		}
+		// before returning the processed script, remove any empty lines
+		return script.replace(/^\n/g, '');
+	};
+
+	// character's beginning dialog -> ^\\S+:
+	processedScript = removeRepeats('^', '\\S+', ':', ':\n', processedScript);
+	// scene information -> \\[\\S+\\]
+	processedScript = removeRepeats('\\[', '\\S+', '\\\]', '\\[', processedScript);
+
+	var newScript = [];
+	// seperate everything by whitespace or newline
+	processedScript.split(/\s|\n/).forEach(function(someWord) {
+
+		// removes all non-word characters (e.g. ! @ $ ,) before and after a word
+		someWord = someWord.replace(/^(\W*)|(\W*)$/g, '');
+
+		// ignore empty words (because of someWord.replace) and ignore stopwords
+		if(someWord && !someWord.shouldIgnore()) {
+			newScript.push(someWord);
+		}
+	});
+
+	return newScript;
+};
+
 /*
-	preprocess before reading the file in; should probably do this programmatically here instead of using remove_action.js:
-
-	find character's beginning dialog scene e.g. kyle:
-	(\S+|\S+ \S+|\S+ \S+ \S+|\S+ \S+ \S+ \S+|\S+ \S+ \S+ \S+ \S+):\n
-
-	remove scene information e.g. [Morning, bus stop. Stan and Kyle wait for the bus, and Kyle arrives]
-	\[(\S+|\S+ \S+|\S+ \S+ \S+|\S+ \S+ \S+ \S+\]
-	see remove_action.js
-
+	param:
+		processedFile = ['STRING', 'STRING2' ...]
 */
-exports.countWordsIn = function(file) {
-
-	var processedFile = (function preProcess() {
-		// make everything lower case for easy counting
-		var oldScript = fs.readFileSync(file, {encoding: 'utf8'}).toLowerCase(),
-			newScript = [];
-
-		// seperate everything by whitespace or newline
-		oldScript.split(/\s|\n/).forEach(function(someWord) {
-
-			// removes all non-word characters (e.g. ! @ $ ,) before and after a word
-			someWord = someWord.replace(/^(\W*)|(\W*)$/g, '');
-
-			// ignore empty words (because of someWord.replace) and ignore stopwords
-			if(someWord && !someWord.shouldIgnore()) {
-				newScript.push(someWord);
-			}
-		});
-
-		return newScript;
-	})();
-
+exports.countWordsIn = function(processedFile) {
 	var trackedWords = {};
 	processedFile.forEach(function(word) {
 		if(trackedWords.hasOwnProperty(word)) {
@@ -58,10 +88,11 @@ exports.countWordsIn = function(file) {
 };
 
 /*
-	rawData = {
-		"word": NUMBER
-		...
-	}
+	param:
+		rawData = {
+			"word": NUMBER
+			...
+		}
 */
 exports.formatData = function(rawData) {
 	var table = '';
