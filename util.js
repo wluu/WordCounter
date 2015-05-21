@@ -49,7 +49,7 @@ exports.processFile = function(file) {
 		return script.replace(/^\n/g, '');
 	};
 
-	// character's beginning dialog -> ^\\S+\\n:
+	// character's beginning dialog -> ^\\S+:\\n
 	processedScript = removeRepeats('^', '\\S+', ':\\n', ':\\n', processedScript);
 	// scene information -> \\[\\S+\\]
 	processedScript = removeRepeats('\\[', '\\S+', '\\]', '\\[', processedScript);
