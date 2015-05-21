@@ -49,10 +49,10 @@ exports.processFile = function(file) {
 		return script.replace(/^\n/g, '');
 	};
 
-	// character's beginning dialog -> ^\\S+:
-	processedScript = removeRepeats('^', '\\S+', ':', ':\n', processedScript);
+	// character's beginning dialog -> ^\\S+\\n:
+	processedScript = removeRepeats('^', '\\S+', ':\\n', ':\\n', processedScript);
 	// scene information -> \\[\\S+\\]
-	processedScript = removeRepeats('\\[', '\\S+', '\\\]', '\\[', processedScript);
+	processedScript = removeRepeats('\\[', '\\S+', '\\]', '\\[', processedScript);
 
 	var newScript = [];
 	// seperate everything by whitespace or newline
