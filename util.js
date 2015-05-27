@@ -1,7 +1,7 @@
 var fs = require('fs'),
 	stopWords = require('./stop_words.js');
 
-// ignore words from the stop_words.js list
+// ignore words from the stop_words.js list (http://en.wikipedia.org/wiki/Stop_words)
 String.prototype.shouldIgnore = function() {
 	for(var i = 0; i < stopWords.length; i++) {
 		if(stopWords[i] === this.toString()) {
@@ -12,6 +12,7 @@ String.prototype.shouldIgnore = function() {
 	return false;
 };
 
+// process the file before counting each word in the file
 exports.processFile = function(file) {
 	// make everything lower case for easy processing
 	var processedScript = fs.readFileSync(file, {encoding: 'utf8'}).toLowerCase();
@@ -49,6 +50,7 @@ exports.processFile = function(file) {
 		return script.replace(/^\n/g, '');
 	};
 
+	// so far, only used by the south park script
 	// character's beginning dialog -> ^\\S+:\\n
 	processedScript = removeRepeats('^', '\\S+', ':\\n', ':\\n', processedScript);
 	// scene information -> \\[\\S+\\]
@@ -71,6 +73,8 @@ exports.processFile = function(file) {
 };
 
 /*
+	starts counting the words after the file have been processed
+
 	param:
 		processedFile = ['STRING', 'STRING2' ...]
 */
@@ -88,6 +92,8 @@ exports.countWordsIn = function(processedFile) {
 };
 
 /*
+	properly formats the raw data to be used by google charts
+
 	param:
 		rawData = {
 			"word": NUMBER
@@ -97,8 +103,19 @@ exports.countWordsIn = function(processedFile) {
 exports.formatData = function(rawData) {
 	var table = '';
 	for(var word in rawData) {
-		// 4 tabs to fit %s string substitution in index.html
+		// 4 tabs to fit %s string substitution in template.html
 		table += '\t\t\t\t[\"' + word + '\", ' + rawData[word]  + '],\n';
 	}
 	return table;
+};
+
+
+// substitute all the %s in template.html with data
+exports.printHtml = function(template, chartData, chartTitle, chartSubtitle) {
+	console.log(
+		fs.readFileSync(template, {encoding: 'utf8'}),
+		chartData,
+		'\'' + chartTitle + '\'',
+		'\'' + chartSubtitle + '\''
+	);
 };
