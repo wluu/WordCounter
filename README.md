@@ -1,5 +1,5 @@
 # WordCounter
-A fun simple project to data mine text from TV episodes and movies.
+A fun simple project to text mine TV episodes and movies.
 
 So far, I've processed:
 * South Park's "It Hits the Fan"
